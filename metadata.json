@@ -1,0 +1,5 @@
+{
+  "name": "ContANT",
+  "description": "A multi-platform content engine that repurposes long-form content into blogs, Twitter threads, LinkedIn posts, and newsletters using Gemini 2.5.",
+  "requestFramePermissions": []
+}
