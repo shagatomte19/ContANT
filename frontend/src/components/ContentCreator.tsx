@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { ContentFormat, InputType, BrandVoice, GeneratedContent, PsychologyAnalysis, ContentStrategy } from '../types';
-import { generatePlatformContent, modifyContent, analyzeContentPsychology, generateContentStrategy, generateMarketingImage } from '../services/geminiService';
+import { generatePlatformContent, modifyContent, analyzeContentPsychology, generateContentStrategy, generateMarketingImage } from '../services/api';
 import { Upload, FileText, CheckCircle, AlertCircle, Loader2, Copy, Twitter, Linkedin, Mail, AlignLeft, Search, Clock, Sliders, RefreshCw, ChevronDown, FileJson, FileType, HardDrive, Cloud, Sparkles, MoreVertical, Wand2, Edit3, Send, BrainCircuit, Image as ImageIcon, Calendar, Microscope, LayoutTemplate, PenTool } from 'lucide-react';
 import { AntIcon } from './Layout';
 
@@ -23,12 +23,12 @@ type WorkflowStep = 'RESEARCH' | 'DRAFT' | 'REFINE' | 'VISUALS';
 
 const ContentCreator: React.FC<Props> = ({ brandVoice, onContentGenerated, showToast }) => {
   const [currentView, setCurrentView] = useState<WorkflowStep>('DRAFT');
-  
+
   // Input State
   const [inputType, setInputType] = useState<InputType>(InputType.TEXT);
   const [sourceText, setSourceText] = useState('');
   const [sourceFile, setSourceFile] = useState<{ data: string, mimeType: string, name: string } | null>(null);
-  
+
   // Strategy/Research State
   const [researchTopic, setResearchTopic] = useState('');
   const [strategy, setStrategy] = useState<ContentStrategy | null>(null);
@@ -41,7 +41,7 @@ const ContentCreator: React.FC<Props> = ({ brandVoice, onContentGenerated, showT
   const [results, setResults] = useState<{ format: ContentFormat; content: string; psychology?: PsychologyAnalysis; imageUrl?: string }[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [activeResultIndex, setActiveResultIndex] = useState(0);
-  
+
   // Progress State
   const [progressStep, setProgressStep] = useState(0);
 
@@ -59,13 +59,13 @@ const ContentCreator: React.FC<Props> = ({ brandVoice, onContentGenerated, showT
     top: number;
     left: number;
   } | null>(null);
-  
+
   const [modificationPrompt, setModificationPrompt] = useState('');
   const [isModifying, setIsModifying] = useState(false);
   const selectionRef = useRef<HTMLDivElement>(null);
   const resultsContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  
+
   // Analysis & Visuals State
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
@@ -87,8 +87,8 @@ const ContentCreator: React.FC<Props> = ({ brandVoice, onContentGenerated, showT
       if (selection && selectionRef.current && !selectionRef.current.contains(event.target as Node)) {
         const target = event.target as HTMLElement;
         if (target.tagName !== 'TEXTAREA') {
-           setSelection(null);
-           setModificationPrompt('');
+          setSelection(null);
+          setModificationPrompt('');
         }
       }
     };
@@ -115,7 +115,7 @@ const ContentCreator: React.FC<Props> = ({ brandVoice, onContentGenerated, showT
   const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 10 * 1024 * 1024) { 
+      if (file.size > 10 * 1024 * 1024) {
         setError("File size exceeds 10MB limit.");
         return;
       }
@@ -136,40 +136,40 @@ const ContentCreator: React.FC<Props> = ({ brandVoice, onContentGenerated, showT
   }, [showToast]);
 
   const toggleFormat = (format: ContentFormat) => {
-    setSelectedFormats(prev => 
+    setSelectedFormats(prev =>
       prev.includes(format) ? prev.filter(f => f !== format) : [...prev, format]
     );
   };
 
   const handleResearch = async () => {
-     if (!researchTopic.trim()) {
-        showToast("Please enter a topic", 'error');
-        return;
-     }
-     setIsResearching(true);
-     try {
-        const strat = await generateContentStrategy(researchTopic);
-        setStrategy(strat);
-        showToast("Colony map generated", 'success');
-     } catch(e) {
-        showToast("Failed to research", 'error');
-     } finally {
-        setIsResearching(false);
-     }
+    if (!researchTopic.trim()) {
+      showToast("Please enter a topic", 'error');
+      return;
+    }
+    setIsResearching(true);
+    try {
+      const strat = await generateContentStrategy(researchTopic);
+      setStrategy(strat);
+      showToast("Colony map generated", 'success');
+    } catch (e) {
+      showToast("Failed to research", 'error');
+    } finally {
+      setIsResearching(false);
+    }
   };
 
   const applyStrategy = () => {
-     if (!strategy) return;
-     const strategicContext = `
+    if (!strategy) return;
+    const strategicContext = `
      Target Audience: ${strategy.targetAudience}
      Content Angle: ${strategy.contentAngle}
      Pain Points: ${strategy.painPoints.join(', ')}
      Suggested Hooks: ${strategy.suggestedHooks.join(' | ')}
      `;
-     setCustomInstructions(prev => (prev ? prev + "\n" : "") + "STRATEGY CONTEXT:\n" + strategicContext);
-     setSourceText(prev => prev || `Topic: ${researchTopic}\n\nKey Points:\n- `);
-     setCurrentView('DRAFT');
-     showToast("Applied to worker pipe", 'success');
+    setCustomInstructions(prev => (prev ? prev + "\n" : "") + "STRATEGY CONTEXT:\n" + strategicContext);
+    setSourceText(prev => prev || `Topic: ${researchTopic}\n\nKey Points:\n- `);
+    setCurrentView('DRAFT');
+    showToast("Applied to worker pipe", 'success');
   };
 
   const handleGenerate = async () => {
@@ -202,10 +202,10 @@ const ContentCreator: React.FC<Props> = ({ brandVoice, onContentGenerated, showT
 
       const rawResults = await Promise.all(promises);
       const finalResults = rawResults.map(r => ({ format: r.format, content: r.content }));
-      
+
       rawResults.forEach(r => {
         if (r.success) {
-           onContentGenerated({
+          onContentGenerated({
             id: Date.now().toString() + r.format,
             format: r.format,
             content: r.content,
@@ -227,39 +227,39 @@ const ContentCreator: React.FC<Props> = ({ brandVoice, onContentGenerated, showT
   };
 
   const handleAnalyzePsychology = async () => {
-     if (!results[activeResultIndex]) return;
-     if (results[activeResultIndex].psychology) {
-        setResultTab('PSYCHOLOGY');
-        return;
-     }
-     setIsAnalyzing(true);
-     try {
-        const analysis = await analyzeContentPsychology(results[activeResultIndex].content);
-        setResults(prev => prev.map((r, i) => i === activeResultIndex ? { ...r, psychology: analysis } : r));
-        setResultTab('PSYCHOLOGY');
-     } catch (e) {
-        showToast("Analysis failed", 'error');
-     } finally {
-        setIsAnalyzing(false);
-     }
+    if (!results[activeResultIndex]) return;
+    if (results[activeResultIndex].psychology) {
+      setResultTab('PSYCHOLOGY');
+      return;
+    }
+    setIsAnalyzing(true);
+    try {
+      const analysis = await analyzeContentPsychology(results[activeResultIndex].content);
+      setResults(prev => prev.map((r, i) => i === activeResultIndex ? { ...r, psychology: analysis } : r));
+      setResultTab('PSYCHOLOGY');
+    } catch (e) {
+      showToast("Analysis failed", 'error');
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   const handleGenerateImage = async () => {
     if (!results[activeResultIndex]) return;
     if (results[activeResultIndex].imageUrl) {
-        setResultTab('VISUALS');
-        return;
+      setResultTab('VISUALS');
+      return;
     }
     setIsGeneratingImage(true);
     try {
-        const promptContext = results[activeResultIndex].content.substring(0, 200);
-        const imgUrl = await generateMarketingImage(promptContext);
-        setResults(prev => prev.map((r, i) => i === activeResultIndex ? { ...r, imageUrl: imgUrl } : r));
-        setResultTab('VISUALS');
+      const promptContext = results[activeResultIndex].content.substring(0, 200);
+      const imgUrl = await generateMarketingImage(promptContext);
+      setResults(prev => prev.map((r, i) => i === activeResultIndex ? { ...r, imageUrl: imgUrl } : r));
+      setResultTab('VISUALS');
     } catch (e) {
-        showToast("Visual task failed", 'error');
+      showToast("Visual task failed", 'error');
     } finally {
-        setIsGeneratingImage(false);
+      setIsGeneratingImage(false);
     }
   };
 
@@ -271,7 +271,7 @@ const ContentCreator: React.FC<Props> = ({ brandVoice, onContentGenerated, showT
   };
 
   const formatIcon = (format: ContentFormat) => {
-    switch(format) {
+    switch (format) {
       case ContentFormat.TWITTER: return <Twitter className="w-5 h-5" />;
       case ContentFormat.LINKEDIN: return <Linkedin className="w-5 h-5" />;
       case ContentFormat.NEWSLETTER: return <Mail className="w-5 h-5" />;
@@ -322,63 +322,61 @@ const ContentCreator: React.FC<Props> = ({ brandVoice, onContentGenerated, showT
 
   return (
     <div className="max-w-6xl mx-auto relative min-h-[600px]">
-      
+
       {/* Workflow Navigation */}
       <div className="flex items-center justify-center mb-10 space-x-4">
-         {[
-           { id: 'RESEARCH', icon: Search, label: 'Scouting' },
-           { id: 'DRAFT', icon: AntIcon, label: 'Heavy Lifting' },
-           { id: 'REFINE', icon: BrainCircuit, label: 'Organization' },
-           { id: 'VISUALS', icon: ImageIcon, label: 'Patterns' }
-         ].map((step, idx) => (
-            <div key={step.id} className="flex items-center">
-               <button 
-                 onClick={() => {
-                    if (step.id === 'RESEARCH' || step.id === 'DRAFT' || results.length > 0) {
-                        setCurrentView(step.id as WorkflowStep);
-                        if (step.id === 'REFINE' && results.length > 0) handleAnalyzePsychology();
-                        if (step.id === 'VISUALS' && results.length > 0) handleGenerateImage();
-                    }
-                 }}
-                 className={`flex items-center space-x-3 px-6 py-3 rounded-2xl text-sm font-black transition-all border-2 uppercase tracking-tighter font-heading ${
-                   currentView === step.id 
-                     ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 dark:border-white shadow-2xl scale-105' 
-                     : 'bg-white dark:bg-slate-900 text-slate-500 border-slate-100 dark:border-slate-800 hover:border-slate-300'
-                 } ${results.length === 0 && (step.id === 'REFINE' || step.id === 'VISUALS') ? 'opacity-30 cursor-not-allowed' : ''}`}
-               >
-                  {typeof step.icon === 'function' ? <step.icon className="w-4 h-4" /> : <step.icon className="w-4 h-4" />}
-                  <span>{step.label}</span>
-               </button>
-               {idx < 3 && <div className="w-8 h-px bg-slate-200 dark:bg-slate-800 mx-2"></div>}
-            </div>
-         ))}
+        {[
+          { id: 'RESEARCH', icon: Search, label: 'Scouting' },
+          { id: 'DRAFT', icon: AntIcon, label: 'Heavy Lifting' },
+          { id: 'REFINE', icon: BrainCircuit, label: 'Organization' },
+          { id: 'VISUALS', icon: ImageIcon, label: 'Patterns' }
+        ].map((step, idx) => (
+          <div key={step.id} className="flex items-center">
+            <button
+              onClick={() => {
+                if (step.id === 'RESEARCH' || step.id === 'DRAFT' || results.length > 0) {
+                  setCurrentView(step.id as WorkflowStep);
+                  if (step.id === 'REFINE' && results.length > 0) handleAnalyzePsychology();
+                  if (step.id === 'VISUALS' && results.length > 0) handleGenerateImage();
+                }
+              }}
+              className={`flex items-center space-x-3 px-6 py-3 rounded-2xl text-sm font-black transition-all border-2 uppercase tracking-tighter font-heading ${currentView === step.id
+                  ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 dark:border-white shadow-2xl scale-105'
+                  : 'bg-white dark:bg-slate-900 text-slate-500 border-slate-100 dark:border-slate-800 hover:border-slate-300'
+                } ${results.length === 0 && (step.id === 'REFINE' || step.id === 'VISUALS') ? 'opacity-30 cursor-not-allowed' : ''}`}
+            >
+              {typeof step.icon === 'function' ? <step.icon className="w-4 h-4" /> : <step.icon className="w-4 h-4" />}
+              <span>{step.label}</span>
+            </button>
+            {idx < 3 && <div className="w-8 h-px bg-slate-200 dark:bg-slate-800 mx-2"></div>}
+          </div>
+        ))}
       </div>
 
       {/* Dynamic Progress Overlay */}
       {isGenerating && (
-         <div className="absolute inset-0 z-50 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md flex flex-col items-center justify-center rounded-3xl animate-in fade-in duration-300 min-h-[600px]">
-            <div className="relative w-24 h-24 mb-8">
-               <div className="absolute inset-0 border-4 border-slate-200 dark:border-slate-700 rounded-full animate-ping opacity-20"></div>
-               <div className="absolute inset-0 border-4 border-t-slate-900 border-r-transparent border-b-slate-900 border-l-transparent rounded-full animate-spin duration-1000"></div>
-               <div className="absolute inset-4 bg-slate-900 dark:bg-white rounded-full flex items-center justify-center shadow-xl">
-                  <AntIcon className="w-10 h-10 text-white dark:text-slate-900 animate-pulse" />
-               </div>
+        <div className="absolute inset-0 z-50 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md flex flex-col items-center justify-center rounded-3xl animate-in fade-in duration-300 min-h-[600px]">
+          <div className="relative w-24 h-24 mb-8">
+            <div className="absolute inset-0 border-4 border-slate-200 dark:border-slate-700 rounded-full animate-ping opacity-20"></div>
+            <div className="absolute inset-0 border-4 border-t-slate-900 border-r-transparent border-b-slate-900 border-l-transparent rounded-full animate-spin duration-1000"></div>
+            <div className="absolute inset-4 bg-slate-900 dark:bg-white rounded-full flex items-center justify-center shadow-xl">
+              <AntIcon className="w-10 h-10 text-white dark:text-slate-900 animate-pulse" />
             </div>
-            <h3 className="text-3xl font-black text-slate-900 dark:text-white mb-8 uppercase tracking-tighter font-heading">Colony In Motion</h3>
-            <div className="w-72 space-y-4">
-              {progressMessages.map((msg, i) => (
-                <div key={i} className={`flex items-center space-x-4 transition-all duration-500 ${i <= progressStep ? 'opacity-100' : 'opacity-0'}`}>
-                   <div className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center border-2 ${
-                     i < progressStep ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900' : 
-                     i === progressStep ? 'border-slate-900 text-slate-900' : 'border-slate-200 dark:border-slate-700'
-                   }`}>
-                     {i < progressStep ? <CheckCircle className="w-4 h-4" /> : i === progressStep ? <div className="w-2 h-2 bg-slate-900 rounded-full animate-pulse" /> : null}
-                   </div>
-                   <span className={`text-xs font-black uppercase tracking-widest ${i === progressStep ? 'text-slate-900 dark:text-white' : 'text-slate-300 dark:text-slate-600'}`}>{msg}</span>
+          </div>
+          <h3 className="text-3xl font-black text-slate-900 dark:text-white mb-8 uppercase tracking-tighter font-heading">Colony In Motion</h3>
+          <div className="w-72 space-y-4">
+            {progressMessages.map((msg, i) => (
+              <div key={i} className={`flex items-center space-x-4 transition-all duration-500 ${i <= progressStep ? 'opacity-100' : 'opacity-0'}`}>
+                <div className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center border-2 ${i < progressStep ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900' :
+                    i === progressStep ? 'border-slate-900 text-slate-900' : 'border-slate-200 dark:border-slate-700'
+                  }`}>
+                  {i < progressStep ? <CheckCircle className="w-4 h-4" /> : i === progressStep ? <div className="w-2 h-2 bg-slate-900 rounded-full animate-pulse" /> : null}
                 </div>
-              ))}
-            </div>
-         </div>
+                <span className={`text-xs font-black uppercase tracking-widest ${i === progressStep ? 'text-slate-900 dark:text-white' : 'text-slate-300 dark:text-slate-600'}`}>{msg}</span>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
       {/* Editor Tooltip */}
@@ -387,8 +385,8 @@ const ContentCreator: React.FC<Props> = ({ brandVoice, onContentGenerated, showT
           <div className="bg-slate-900 dark:bg-black text-white p-2 rounded-xl shadow-2xl flex items-center gap-2 border border-slate-700 min-w-[320px]">
             <div className="flex-1 flex items-center bg-slate-800 dark:bg-slate-900 rounded-lg px-3 py-1.5 border border-slate-700 focus-within:border-blue-500 transition-all">
               <AntIcon className="w-4 h-4 text-white mr-2" />
-              <input 
-                type="text" autoFocus placeholder="Give a worker direct orders..." 
+              <input
+                type="text" autoFocus placeholder="Give a worker direct orders..."
                 className="bg-transparent border-none outline-none text-sm text-white placeholder-slate-500 w-full font-bold"
                 value={modificationPrompt} onChange={(e) => setModificationPrompt(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleApplyModification(e)}
               />
@@ -403,41 +401,41 @@ const ContentCreator: React.FC<Props> = ({ brandVoice, onContentGenerated, showT
       {/* --- RESEARCH VIEW --- */}
       {currentView === 'RESEARCH' && (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
-            <div className="text-center max-w-2xl mx-auto">
-               <h2 className="text-4xl font-black text-slate-900 dark:text-white uppercase tracking-tighter font-heading">Scouting Mode</h2>
-               <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium">Map the digital terrain before the workers begin the heavy lifting.</p>
+          <div className="text-center max-w-2xl mx-auto">
+            <h2 className="text-4xl font-black text-slate-900 dark:text-white uppercase tracking-tighter font-heading">Scouting Mode</h2>
+            <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium">Map the digital terrain before the workers begin the heavy lifting.</p>
+          </div>
+          <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl border-2 border-slate-100 dark:border-slate-800 shadow-2xl">
+            <div className="flex gap-4">
+              <input
+                value={researchTopic}
+                onChange={(e) => setResearchTopic(e.target.value)}
+                placeholder="Enter a territory to scout (e.g., 'The Future of AI')"
+                className="flex-1 px-5 py-4 bg-slate-50 dark:bg-slate-800 border-2 border-transparent rounded-2xl focus:bg-white dark:focus:bg-slate-950 focus:border-slate-900 dark:focus:border-white outline-none text-lg font-bold"
+              />
+              <button onClick={handleResearch} disabled={isResearching} className="px-10 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-black rounded-2xl hover:bg-slate-800 transition-all uppercase tracking-widest font-heading shadow-xl">
+                {isResearching ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Scout'}
+              </button>
             </div>
-            <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl border-2 border-slate-100 dark:border-slate-800 shadow-2xl">
-               <div className="flex gap-4">
-                  <input 
-                    value={researchTopic} 
-                    onChange={(e) => setResearchTopic(e.target.value)} 
-                    placeholder="Enter a territory to scout (e.g., 'The Future of AI')" 
-                    className="flex-1 px-5 py-4 bg-slate-50 dark:bg-slate-800 border-2 border-transparent rounded-2xl focus:bg-white dark:focus:bg-slate-950 focus:border-slate-900 dark:focus:border-white outline-none text-lg font-bold"
-                  />
-                  <button onClick={handleResearch} disabled={isResearching} className="px-10 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-black rounded-2xl hover:bg-slate-800 transition-all uppercase tracking-widest font-heading shadow-xl">
-                     {isResearching ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Scout'}
-                  </button>
-               </div>
-            </div>
+          </div>
 
-            {strategy && (
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in slide-in-from-bottom-4">
-                  <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl border-2 border-slate-100 dark:border-slate-800 group hover:border-slate-900 transition-colors">
-                     <h3 className="text-xl font-black text-slate-900 dark:text-white mb-4 flex items-center uppercase tracking-tighter font-heading"><LayoutTemplate className="w-5 h-5 mr-3"/> Attack Angle</h3>
-                     <p className="text-slate-600 dark:text-slate-300 leading-relaxed font-medium">{strategy.contentAngle}</p>
-                  </div>
-                  <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl border-2 border-slate-100 dark:border-slate-800 group hover:border-slate-900 transition-colors">
-                     <h3 className="text-xl font-black text-slate-900 dark:text-white mb-4 flex items-center uppercase tracking-tighter font-heading"><Microscope className="w-5 h-5 mr-3"/> Target Nest</h3>
-                     <p className="text-slate-600 dark:text-slate-300 leading-relaxed font-medium">{strategy.targetAudience}</p>
-                  </div>
-                  <div className="md:col-span-2 flex justify-center mt-6">
-                     <button onClick={applyStrategy} className="px-12 py-5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-black shadow-2xl hover:scale-105 transition-transform uppercase tracking-widest font-heading">
-                        Order Workers To Deploy
-                     </button>
-                  </div>
-               </div>
-            )}
+          {strategy && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in slide-in-from-bottom-4">
+              <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl border-2 border-slate-100 dark:border-slate-800 group hover:border-slate-900 transition-colors">
+                <h3 className="text-xl font-black text-slate-900 dark:text-white mb-4 flex items-center uppercase tracking-tighter font-heading"><LayoutTemplate className="w-5 h-5 mr-3" /> Attack Angle</h3>
+                <p className="text-slate-600 dark:text-slate-300 leading-relaxed font-medium">{strategy.contentAngle}</p>
+              </div>
+              <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl border-2 border-slate-100 dark:border-slate-800 group hover:border-slate-900 transition-colors">
+                <h3 className="text-xl font-black text-slate-900 dark:text-white mb-4 flex items-center uppercase tracking-tighter font-heading"><Microscope className="w-5 h-5 mr-3" /> Target Nest</h3>
+                <p className="text-slate-600 dark:text-slate-300 leading-relaxed font-medium">{strategy.targetAudience}</p>
+              </div>
+              <div className="md:col-span-2 flex justify-center mt-6">
+                <button onClick={applyStrategy} className="px-12 py-5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-black shadow-2xl hover:scale-105 transition-transform uppercase tracking-widest font-heading">
+                  Order Workers To Deploy
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -485,18 +483,18 @@ const ContentCreator: React.FC<Props> = ({ brandVoice, onContentGenerated, showT
             </div>
 
             <div className="space-y-6">
-               <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter font-heading">Pheromones</h3>
-               <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl border-2 border-slate-100 dark:border-slate-800 shadow-2xl space-y-6">
-                  <div>
-                    <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-3">Tone Setting</label>
-                    <select className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 border-transparent rounded-2xl text-xs font-black uppercase focus:bg-white focus:border-slate-900 outline-none transition-all cursor-pointer" value={toneOverride} onChange={(e) => setToneOverride(e.target.value)}>
-                      <option value="">Default Worker ({brandVoice.tone})</option><option value="Professional & Authoritative">Elite</option><option value="Casual & Friendly">Friendly</option><option value="Witty & Sarcastic">Sharp</option>
-                    </select>
-                  </div>
-               </div>
+              <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter font-heading">Pheromones</h3>
+              <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl border-2 border-slate-100 dark:border-slate-800 shadow-2xl space-y-6">
+                <div>
+                  <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-3">Tone Setting</label>
+                  <select className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 border-transparent rounded-2xl text-xs font-black uppercase focus:bg-white focus:border-slate-900 outline-none transition-all cursor-pointer" value={toneOverride} onChange={(e) => setToneOverride(e.target.value)}>
+                    <option value="">Default Worker ({brandVoice.tone})</option><option value="Professional & Authoritative">Elite</option><option value="Casual & Friendly">Friendly</option><option value="Witty & Sarcastic">Sharp</option>
+                  </select>
+                </div>
+              </div>
             </div>
           </div>
-          
+
           <div className="flex justify-center pt-8 pb-12">
             <button onClick={handleGenerate} disabled={isGenerating} className={`group relative flex items-center px-16 py-6 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-black text-xl shadow-2xl shadow-slate-900/40 transition-all duration-300 hover:scale-105 hover:shadow-black/20 ${isGenerating ? 'opacity-50' : ''} uppercase tracking-widest font-heading`}>
               {isGenerating ? 'Lifting Payload...' : <><AntIcon className="w-6 h-6 mr-4" /> Start Colony Task</>}
@@ -508,34 +506,34 @@ const ContentCreator: React.FC<Props> = ({ brandVoice, onContentGenerated, showT
       {/* --- RESULTS VIEW --- */}
       {results.length > 0 && !isGenerating && (
         <div ref={resultsContainerRef} className="space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700 min-h-[500px]">
-           <div className="sticky top-24 z-30 bg-slate-900 text-white p-4 rounded-3xl shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-4 border border-slate-700">
+          <div className="sticky top-24 z-30 bg-slate-900 text-white p-4 rounded-3xl shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-4 border border-slate-700">
             <div className="flex items-center gap-3">
-               {results.map((res, index) => (
-                  <button key={index} onClick={() => setActiveResultIndex(index)} className={`flex items-center px-5 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all ${activeResultIndex === index ? 'bg-white text-slate-900 shadow-xl' : 'text-slate-400 hover:text-white'}`}>
-                    {formatIcon(res.format)}
-                    <span className="ml-2 hidden sm:inline">{res.format}</span>
-                  </button>
-               ))}
+              {results.map((res, index) => (
+                <button key={index} onClick={() => setActiveResultIndex(index)} className={`flex items-center px-5 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all ${activeResultIndex === index ? 'bg-white text-slate-900 shadow-xl' : 'text-slate-400 hover:text-white'}`}>
+                  {formatIcon(res.format)}
+                  <span className="ml-2 hidden sm:inline">{res.format}</span>
+                </button>
+              ))}
             </div>
             <div className="flex items-center space-x-2">
-               <button onClick={handleGenerate} className="p-3 bg-white/10 hover:bg-white/20 rounded-xl transition-all"><RefreshCw className="w-5 h-5"/></button>
+              <button onClick={handleGenerate} className="p-3 bg-white/10 hover:bg-white/20 rounded-xl transition-all"><RefreshCw className="w-5 h-5" /></button>
             </div>
           </div>
 
           {activeRes && (
             <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border-2 border-slate-100 dark:border-slate-800 overflow-visible transition-all duration-500">
-               <div className="bg-slate-50/50 dark:bg-slate-800/50 px-8 py-5 border-b-2 border-slate-100 dark:border-slate-800 flex items-center gap-8 rounded-t-3xl">
-                  <button onClick={() => { setCurrentView('DRAFT'); setResultTab('CONTENT'); }} className={`text-xs font-black uppercase tracking-widest flex items-center ${resultTab === 'CONTENT' ? 'text-slate-900 dark:text-white' : 'text-slate-400'}`}><FileText className="w-4 h-4 mr-2"/> Payload</button>
-                  <button onClick={() => { setCurrentView('REFINE'); handleAnalyzePsychology(); }} className={`text-xs font-black uppercase tracking-widest flex items-center ${resultTab === 'PSYCHOLOGY' ? 'text-slate-900 dark:text-white' : 'text-slate-400'}`}><BrainCircuit className="w-4 h-4 mr-2"/> Structure</button>
-                  <button onClick={() => { setCurrentView('VISUALS'); handleGenerateImage(); }} className={`text-xs font-black uppercase tracking-widest flex items-center ${resultTab === 'VISUALS' ? 'text-slate-900 dark:text-white' : 'text-slate-400'}`}><ImageIcon className="w-4 h-4 mr-2"/> Pattern</button>
-                  <div className="ml-auto text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center"><Clock className="w-3 h-3 mr-1"/> {calculateReadingTime(activeRes.content)}</div>
-               </div>
-               
-               <div className="min-h-[500px]">
-                  {resultTab === 'CONTENT' && (
-                     <textarea ref={textareaRef} value={activeRes.content} onChange={handleContentChange} onMouseUp={handleTextSelect} className="w-full h-full min-h-[500px] p-8 md:p-12 bg-transparent border-none outline-none resize-none font-sans text-lg leading-relaxed text-slate-900 dark:text-slate-100 placeholder-slate-300 rounded-b-3xl font-bold" spellCheck={false} />
-                  )}
-               </div>
+              <div className="bg-slate-50/50 dark:bg-slate-800/50 px-8 py-5 border-b-2 border-slate-100 dark:border-slate-800 flex items-center gap-8 rounded-t-3xl">
+                <button onClick={() => { setCurrentView('DRAFT'); setResultTab('CONTENT'); }} className={`text-xs font-black uppercase tracking-widest flex items-center ${resultTab === 'CONTENT' ? 'text-slate-900 dark:text-white' : 'text-slate-400'}`}><FileText className="w-4 h-4 mr-2" /> Payload</button>
+                <button onClick={() => { setCurrentView('REFINE'); handleAnalyzePsychology(); }} className={`text-xs font-black uppercase tracking-widest flex items-center ${resultTab === 'PSYCHOLOGY' ? 'text-slate-900 dark:text-white' : 'text-slate-400'}`}><BrainCircuit className="w-4 h-4 mr-2" /> Structure</button>
+                <button onClick={() => { setCurrentView('VISUALS'); handleGenerateImage(); }} className={`text-xs font-black uppercase tracking-widest flex items-center ${resultTab === 'VISUALS' ? 'text-slate-900 dark:text-white' : 'text-slate-400'}`}><ImageIcon className="w-4 h-4 mr-2" /> Pattern</button>
+                <div className="ml-auto text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center"><Clock className="w-3 h-3 mr-1" /> {calculateReadingTime(activeRes.content)}</div>
+              </div>
+
+              <div className="min-h-[500px]">
+                {resultTab === 'CONTENT' && (
+                  <textarea ref={textareaRef} value={activeRes.content} onChange={handleContentChange} onMouseUp={handleTextSelect} className="w-full h-full min-h-[500px] p-8 md:p-12 bg-transparent border-none outline-none resize-none font-sans text-lg leading-relaxed text-slate-900 dark:text-slate-100 placeholder-slate-300 rounded-b-3xl font-bold" spellCheck={false} />
+                )}
+              </div>
             </div>
           )}
         </div>
